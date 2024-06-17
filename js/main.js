@@ -5,9 +5,11 @@ import {Randomizer} from './modules/utils/randomizer.js'
 
 const newGameButton = document.querySelector('.js-new')
 const cancelButton = document.querySelector('.js-cancel')
+const questionDiv = document.querySelector('.js-question')
 const elementsToHide = document.querySelectorAll(
   '.js-game > *:not(nav), .js-ranking, .js-cancel'
 )
+let score = 0
 
 const resetGame = () => {
   elementsToHide.forEach((element) => {
@@ -79,13 +81,44 @@ const getUpdatedCategories = async () => {
 const loadQuestions = async (round, updatedCategories, apiToken) => {
   const question = await fetchQuestion(apiToken, updatedCategories[round].id)
   questions.push(question[0])
-  console.log('questions: ', questions)
   renderQuestion(round - 1, questions)
 }
 
-const renderQuestion = (round, questions)=>{
+const renderQuestion = (round, questions) => {
   const question = questions[round]
-  
+  const questionStatement = document.querySelector('.question__statement')
+  const correctAnswerObj = {
+    correctAnswer: true,
+    answer: question.correct_answer,
+  }
+  const incorrectAnswers = []
+  question.incorrect_answers.forEach((answer) => {
+    incorrectAnswers.push({correctAnswer: false, answer: answer})
+  })
+  const answers = Randomizer.randomizeArray([
+    correctAnswerObj,
+    ...incorrectAnswers,
+  ])
+  const listItems = document.querySelectorAll(
+    '.question__answers .question__option'
+  )
+
+  questionStatement.innerText = question.question
+  const scoreSection = document.querySelector('.js-points')
+  listItems.forEach((item, index) => {
+    if (answers[index]) {
+      item.innerText = answers[index].answer
+      item.id = answers[index].correctAnswer
+      item.addEventListener('click', () => {
+        if (item.id == 'true') {
+          score += 2
+          scoreSection.innerText = score
+        }
+      })
+    } else {
+      item.classList.add('d-none')
+    }
+  })
 }
 
 const api_url = 'https://opentdb.com/api_category.php'
@@ -94,8 +127,6 @@ const apiToken = await getApiToken()
 const updatedCategories = await getUpdatedCategories()
 const randomizedCategories = Randomizer.randomizeArray(updatedCategories)
 const questions = []
-
-
 
 resetGame()
 loadQuestions(round, randomizedCategories, apiToken)
